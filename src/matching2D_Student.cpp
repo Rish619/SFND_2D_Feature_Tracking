@@ -54,9 +54,6 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
     cout << "Number of matched keypoints = " << matches.size() << endl;
 }
 
-
-
-
 // Use one of several types of state-of-art descriptors to uniquely identify keypoints
 double descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, string descriptorType)
 {
@@ -200,14 +197,13 @@ double detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bo
     return t;
 }
 
-
 // Detect keypoints using modern detectors FAST, BRISK, ORB, AKAZE, SIFT
 double detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, std::string detectorType, bool bVis)
 {
-    
+
     cv::Ptr<cv::FeatureDetector> detector;
     if (detectorType.compare("FAST") == 0)
-    {   
+    {
         int threshold = 30;
         bool bNMS = true;
         detector = cv::FastFeatureDetector::create(threshold, bNMS, cv::FastFeatureDetector::TYPE_9_16);
@@ -239,4 +235,3 @@ double detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, st
     std::cout << detectorType << " detection with n = " << keypoints.size() << " keypoint in " << 1000 * t / 1.0 << " ms.\n";
     return t;
 }
-
