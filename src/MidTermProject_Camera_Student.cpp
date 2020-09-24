@@ -38,15 +38,21 @@ int main(int argc, const char *argv[])
     // misc
     int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
     vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
-    bool bVis = false;            // visualize results
+
+    // for visualizing results
+    bool bVis = true;
+    bool bViskeyPoints = false;
+    bool bFocusOnVehicle = true;
+    bool bLimitKpts = true; 
     
     double timeTotal = 0;
     int keypointTotal = 0;
     int matchesTotal = 0;
     
     string detectorType = "SHITOMASI";   // HARRIS, SHITOMASI, FAST, BRISK, ORB, AKAZE, SIFT
-    string descriptorType = "BRISK"; // BRIEF, ORB, FREAK, AKAZE, SIFT
-    string descriptorType_HOG_BIN = "DES_BINARY";
+    string descriptorType = "BRISK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+    
+
 
     /* MAIN LOOP OVER ALL IMAGES */
 
@@ -78,14 +84,14 @@ int main(int argc, const char *argv[])
         }
 
         //// EOF STUDENT ASSIGNMENT
-        //cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
+        cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
 
         /* DETECT IMAGE KEYPOINTS */
         double timeDetect = 0;
         
         // extract 2D keypoints from current image
         vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-        //string detectorType = "SHITOMASI";
+        
        
 
 
@@ -108,31 +114,21 @@ int main(int argc, const char *argv[])
         
         keypointTotal += keypoints.size();
 
+
+
         //// EOF STUDENT ASSIGNMENT
 
         //// STUDENT ASSIGNMENT
         //// TASK MP.3 -> only keep keypoints on the preceding vehicle
 
         // only keep keypoints on the preceding vehicle
-        bool bFocusOnVehicle = true;
+       
         cv::Rect vehicleRect(535, 180, 180, 150);
         if (bFocusOnVehicle)
         {
             // ...
             for (auto it = keypoints.begin(); it < keypoints.end(); it++)
             {
-                // cv::KeyPoint newKeyPoint;
-                // newKeyPoint.pt = cv::Point2f((*it).pt.x, (*it).pt.y);
-                // int pointx = newKeyPoint.pt.x;
-                // int pointy = newKeyPoint.pt.y;
-                // int leftx = vehicleRect.x;
-                // int rightx = vehicleRect.x + vehicleRect.width;
-                // int topy = vehicleRect.y + vehicleRect.height;
-                // int bottomy = vehicleRect.y;
-                // if (leftx > pointx || pointx > rightx || pointy > topy || pointy < bottomy)
-                // {
-                //     keypoints.erase(it);
-                // }
 
                 // remove the kep-point if it is not in the RoI
                 if (!vehicleRect.contains(it->pt))
@@ -140,29 +136,29 @@ int main(int argc, const char *argv[])
                     keypoints.erase(it);
                 }
             }
-            // std::cout << "Focus on vehicle keypoints = " << keypoints.size() << "\n";
         }
 
         //// EOF STUDENT ASSIGNMENT
 
         // optional : limit number of keypoints (helpful for debugging and learning)
-        bool bLimitKpts = false;
+        
         if (bLimitKpts)
         {
             int maxKeypoints = 50;
 
-            if (detectorType.compare("SHITOMASI") == 0)
-            { // there is no response info, so keep the first 50 as they are sorted in descending quality order
-                keypoints.erase(keypoints.begin() + maxKeypoints, keypoints.end());
-            }
+            
+            // there is no response info, so keep the first 50 as they are sorted in descending quality order
+            keypoints.erase(keypoints.begin() + maxKeypoints, keypoints.end());
+            
             cv::KeyPointsFilter::retainBest(keypoints, maxKeypoints);
-            //cout << " NOTE: Keypoints have been limited!" << endl;
+            cout << " NOTE: Keypoints have been limited!" << endl;
         }
 
         // push keypoints and descriptor for current frame to end of data buffer
         (dataBuffer.end() - 1)->keypoints = keypoints;
-        //cout << "#2 : DETECT KEYPOINTS done" << endl;
+        cout << "#2 : DETECT KEYPOINTS done" << endl;
 
+       
         /* EXTRACT KEYPOINT DESCRIPTORS */
 
         //// STUDENT ASSIGNMENT
@@ -178,7 +174,7 @@ int main(int argc, const char *argv[])
         // push descriptors for current frame to end of data buffer
         (dataBuffer.end() - 1)->descriptors = descriptors;
 
-        //cout << "#3 : EXTRACT DESCRIPTORS done" << endl;
+        cout << "#3 : EXTRACT DESCRIPTORS done" << endl;
 
         if (dataBuffer.size() > 1) // wait until at least two images have been processed
         {
@@ -187,7 +183,7 @@ int main(int argc, const char *argv[])
 
             vector<cv::DMatch> matches;
             string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
-            //string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
+            string descriptorTypeForMatch = "DES_BINARY"; // DES_BINARY, DES_HOG
             string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
             //// STUDENT ASSIGNMENT
@@ -196,7 +192,7 @@ int main(int argc, const char *argv[])
 
             matchDescriptors((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints,
                              (dataBuffer.end() - 2)->descriptors, (dataBuffer.end() - 1)->descriptors,
-                             matches, descriptorType_HOG_BIN, matcherType, selectorType);
+                             matches, descriptorTypeForMatch, matcherType, selectorType);
             
 
 
@@ -209,7 +205,7 @@ int main(int argc, const char *argv[])
             //cout << "#4 : MATCH KEYPOINT DESCRIPTORS done" << endl;
 
             // visualize matches between current and previous image
-            bVis = false;
+           
             if (bVis)
             {
                 cv::Mat matchImg = ((dataBuffer.end() - 1)->cameraImg).clone();
@@ -225,15 +221,18 @@ int main(int argc, const char *argv[])
                 cout << "Press key to continue to next image" << endl;
                 cv::waitKey(0); // wait for key to be pressed
             }
-            bVis = false;
         }
         timeTotal += timeDetect + timeDes;
 
     } // eof loop over all images
     
-     // Generate output table for README.md 
-    std::cout << "| Detector + Descriptor |" << "Total Keypoints |" << "Total Matches |" << "Total Time (ms) |" << "Ratio (matches/time) |" << "\n";
-    std::cout << "|:---:|:----:|:-----:|:-----:|:-----:|\n";
-    std::cout << "| " << detectorType << " + " << descriptorType << " |" << keypointTotal << " |" << matchesTotal << " |" << timeTotal * 1000.0 << " |" << matchesTotal / (timeTotal * 1000.0) << " |"<< "\n";
+    std::cout << std::endl;
+    std::cout << "**************SUMMARY*************" << std::endl;
+    std::cout << detectorType << " + " << descriptorType << std::endl;
+    std::cout << "Total number of Key-points = " << keypointTotal << std::endl;
+    std::cout << "Total number of Matches = " << matchesTotal << std::endl;
+    std::cout << "Total Time Consumption = " << timeTotal * 1000.0 << " ms" << std::endl;
+    std::cout << "Ratio = " << matchesTotal / (timeTotal * 1000.0) << " matches/ms" << std::endl;
+    std::cout << "**********************************" << std::endl;
     return 0;
 }

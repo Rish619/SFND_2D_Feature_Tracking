@@ -11,6 +11,14 @@ The idea of the camera course is to build a collision detection system - that's 
 
 See the classroom instruction and code comments for more details on each of these parts. Once you are finished with this project, the keypoint matching part will be set up and you can proceed to the next lesson, where the focus is on integrating Lidar points and on object detection using deep-learning. 
 
+# Keypoint Detector,Descriptor and Matching in action
+
+<img src="images/Result2.gif" width="820" height="248" />
+
+Two consecutive frames compared on the basis of the keypoints detected(SHITOMASI AND BRISK Detector/Descriptor) K nearest neighbour matching(k=2) with Descriptor Distance Ratio as 0.8(threshold).
+
+* TTC(Time to collison) or distance travelled by the car can also be calculated by analysing the moving Mono camera frame stream and matching the key features and change in their size with respect to the entire frame(relative comparison).
+
 ## Dependencies for Running Locally
 * cmake >= 2.8
   * All OSes: [click here for installation instructions](https://cmake.org/install/)
@@ -32,68 +40,160 @@ See the classroom instruction and code comments for more details on each of thes
 2. Make a build directory in the top level directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
 4. Run it: `./2D_feature_tracking`.
+5. Currently to try detector,descriptor and match combination, one must manually substitute the values 
+in MidTermProject_Camera_Student.cpp and then run `make` in the build directory and 
+then run `./2D_feature_tracking` and record the values. 
+
+
+## Marking Guide/Rubric for this Assignment
+
+1. Data Buffer Optimization: Implement a vector for dataBuffer objects whose size does not exceed a limit (e.g. 2 elements). 
+
+   
+
+   > This can be achieved by pushing in new elements on one end and removing elements on the other end. First of all, we push the current image into data frame buffer, then we check if the buffer size is more then the max buffer size(dataBufferSize), if so we will pop out the first element to ensure the data frame buffer will not accumulate.
+
+   
+
+2. Keypoint Detection: Implement detectors Shi-Thomasi, HARRIS, FAST, BRISK, ORB, AKAZE, and SIFT and make them selectable by setting a string accordingly.
+
+   
+
+   >  Based on the input string, we implemented 3 different functions: detKeypointsShiTomasi (Shi-Thomasi, Good Features to Track), detKeypointsHarris(Harris corner), detKeypointsModern(FAST, BRISK, ORB, AKAZE, and SIFT). In each function, we set up several parameters(block size, minimal distance, threshold...). Then OpenCV build-in detector class will be initialized with these parameters and scan the whole image to detect key-points. Also the detection time will be logged for performance evaluation.
+
+   
+
+3. Keypoint Removal: Remove all keypoints outside of a pre-defined rectangle and only use the keypoints within the rectangle for further processing.
+
+   
+
+   > For this project, we will focus more on the preceding vehicle, so we set up a certain region of interest around the middle of the whole image. We will only keep the key-point that is in this area to reduce noise and save computation power for following steps.
+
+   
+
+4. Keypoint Descriptors: Implement descriptors BRIEF, ORB, FREAK, AKAZE and SIFT and make them selectable by setting a string accordingly.
+
+   
+
+   > Descriptor is a vector of values, which describes the image patch around a keypoint. Similar to step 2, we implement a function to detection descriptors based on the input string. We still use OpenCV build-in descriptors (BRIEF, ORB, FREAK, AKAZE and SIFT) class with default parameters to uniquely identify keypoints. Similar to step 2, we log the descriptor extraction time for performance evaluation.
+
+   
+
+5. Descriptor Matching: Implement FLANN matching as well as k-nearest neighbor selection. Both methods must be selectable using the respective strings in the main function.
+
+   
+
+   >User can choose which matching method to use: Brute-force matcher(MAT_BF) or FLANN matcher(MAT_FLANN). Note that we need to convert our image to CV_32F type due to  a bug in current OpenCV implementation if we choose FLANN matching.
+
+   
+
+6. Descriptor Distance Ratio: Use the K-Nearest-Neighbor matching to implement the descriptor distance ratio test, which looks at the ratio of best vs. second-best match to decide whether to keep an associated pair of keypoints.
+
+   
+
+   >Both nearest neighbor (best match) and K nearest neighbors (default k=2) are implemented. For KNN matching, we filter matches using descriptor distance ratio test to remove some outliers. In current implementation, only following match will be accepted:
+   >
+   > knn_match[0].distance < 0.9 * knn_match[1].distance
+
+   
+
+7. Performance Evaluation 1: Count the number of keypoints on the preceding vehicle for all 10 images and take note of the distribution of their neighborhood size. Do this for all the detectors you have implemented.
+
+   
+
+   [Performance Evaluation 1 - Number of Key-points for 10 Images](#benchmark)
+
+   
+
+8. Performance Evaluation 2: Count the number of matched keypoints for all 10 images using all possible combinations of detectors and descriptors. In the matching step, the BF approach is used with the descriptor distance ratio set to 0.8.
+
+   
+
+   [Performance Evaluation 2 - Number of Matched Key-points for 10 Images](#benchmark)
+
+   
+
+9. Performance Evaluation 3: Log the time it takes for keypoint detection and descriptor extraction. The results must be entered into a spreadsheet and based on this data, the TOP3 detector / descriptor combinations must be recommended as the best choice for our purpose of detecting keypoints on vehicles.
+
+   
+
+   [Performance Evaluation 3 - Key-point Detection and Descriptor Extraction Time Consumption](#benchmark)
+
+
 
 ## Benchmarking 
-I have created bash script generatecom.sh which loops through all the possible combination of detector and descriptor pairs.
 
-Run it: ./generatecom.sh.
+#### Number of Key-points for 10 Images
 
-This creates a output/output.md file.
-
-I used KNN match selection (k=2) and performed descriptor distance ratio filtering with t=0.8 in file matching2D.cpp.
-
-
-|Sr. No. | Detector + Descriptor |Total Keypoints |Total Matches |Total Time (ms) |Ratio (matches/time) |
-|:---:|:---:|:----:|:-----:|:-----:|:-----:|
-|1 | SHITOMASI + BRISK |13423 |2255 |489.655 |4.60529 |
-|2 | SHITOMASI + BRIEF |13423 |3234 |482.639 |6.70066 |
-|3 | SHITOMASI + ORB |13423 |2856 |691.27 |4.13152 |
-|4 | SHITOMASI + FREAK |13423 |2299 |796.32 |2.88703 |
-|5 | SHITOMASI + SIFT |13423 |3213 |635.074 |5.05926 |
-|6 | HARRIS + BRISK |728 |219 |356.426 |0.614433 |
-|7 | HARRIS + BRIEF |728 |257 |357.128 |0.719629 |
-|8 | HARRIS + ORB |728 |252 |616.469 |0.40878 |
-|9 | HARRIS + FREAK |728 |209 |679.892 |0.307402 |
-|10 | HARRIS + SIFT |728 |256 |500.891 |0.511089 |
-|11 | FAST + BRISK |17874 |3170 |206.208 |15.3728 |
-|12 | FAST + BRIEF |17874 |4904 |200.151 |24.5016 |
-|13 | FAST + ORB |17874 |4254 |394.814 |10.7747 |
-|14 | FAST + FREAK |17874 |3164 |525.243 |6.02388 |
-|15 | FAST + SIFT |17874 |5734 |608.286 |9.42648 |
-|16 | BRISK + BRISK |27116 |5073 |3552.64 |1.42795 |
-|17 | BRISK + BRIEF |27116 |7474 |3633.46 |2.05699 |
-|18 | BRISK + ORB |27116 |5095 |4369.4 |1.16606 |
-|19 | BRISK + FREAK |27116 |5008 |3860.58 |1.29721 |
-|20 | BRISK + SIFT |27116 |6934 |4716.69 |1.4701 |
-|21 | ORB + BRISK |5000 |1378 |623.865 |2.20881 |
-|22 | ORB + BRIEF |5000 |1403 |603.852 |2.32342 |
-|23 | ORB + ORB |5000 |1466 |1569.9 |0.933817 |
-|24 | ORB + FREAK |5000 |627 |897.253 |0.6988 |
-|25 | ORB + SIFT |5000 |1578 |1387.89 |1.13698 |
-|26 | AKAZE + BRISK |13429 |3240 |1823.38 |1.77692 |
-|27 | AKAZE + BRIEF |13429 |4041 |1829.08 |2.2093 |
-|28 | AKAZE + ORB |13429 |3340 |2422.53 |1.37873 |
-|29 | AKAZE + FREAK |13429 |3228 |2112.13 |1.52832 |
-|30 | AKAZE + AKAZE |13429 |3463 |3295.21 |1.05092 |
-|31 | AKAZE + SIFT |13429 |3633 |2135.31 |1.70139 |
-|32 | SIFT + BRISK |13860 |2458 |874.397 |2.81108 |
-|33 | SIFT + BRIEF |13860 |3243 |914.507 |3.54617 |
-|34 | SIFT + FREAK |13860 |2428 |1241.34 |1.95595 |
-|35 | SIFT + SIFT |13860 |2557 |1497.76 |1.70722 |
-
-Total combinations were 42, but for some of the combinations got an OpenCV error:
-OpenCV(4.1.0) Error: Assertion failed
+| Detectors | Number of Key-points |
+| :-------: | :------------------: |
+| SHITOMASI |        13423         |
+|  HARRIS   |         1737         |
+|   FAST    |        17874         |
+|   BRISK   |        27116         |
+|    ORB    |         5000         |
+|   AKAZE   |        13429         |
+|   SIFT    |        13860         |
 
 
-### Top 3 detector/ descriptor pairs with maximum Ratio
-|Sr. No. | Detector + Descriptor |Total Keypoints |Total Matches |Total Time (ms) |Ratio (matches/time) |
-|:---:|:---:|:----:|:-----:|:-----:|:-----:|
-|12 | FAST + BRIEF |17874 |4904 |200.151 |24.5016 |
-|11 | FAST + BRISK |17874 |3170 |206.208 |15.3728 |
-|13 | FAST + ORB |17874 |4254 |394.814 |10.7747 |
+
+#### Number of Matched Key-points for 10 Images
+
+| Detectors\Descriptors | BRISK |  BRIEF  |      ORB      | FREAK | AKAZE | SIFT |
+| :-------------------: | :---: | :-----: | :-----------: | :---: | :---: | :--: |
+|       SHITOMASI       |  224  |   288 |      272      |  224  |  N/A  | N/A  |
+|        HARRIS         |  123  |   185   |      155      |  126  |  N/A  | N/A  |
+|         FAST          |  137  |   138   |      118      |  108  |  N/A  | N/A |
+|         BRISK         |  182  |   241   |      170      |  111  |  N/A  | N/A  |
+|          ORB          |  262  | **289**   |      235      |  225  |  N/A  | N/A  |
+|         AKAZE         |  192  |   255   |      199      |  195  |  203  | N/A  |
+|         SIFT          |  130  |   147   | Out of Memory |  108  |  N/A  | N/A  |
+
+* KAZE/AKAZE descriptors will only work with KAZE/AKAZE keypoints.(It is because AKAZE fill the keypoints with one additional field which can only be extracted by appropriate descriptor and that is AKAZE)
+* SIFT can be a detector but not the descriptor.
+* SHITOMASI with blockSize = 4
+* HARRIS with blockSize = 2
+* In the matching step, the BF approach is used with the descriptor distance ratio set to 0.8.
+
+
+
+#### Key-point Detection and Descriptor Extraction Time Consumption (in ms)
+
+| Detectors\Descriptors |  BRISK  |    BRIEF    |      ORB      |  FREAK  |  AKAZE  |    SIFT    |
+| :-------------------: | :-----: | :---------: | :-----------: | :-----: | :-----: | :--------: |
+|       SHITOMASI       | 440.179 |   477.659   |    757.548    | 817.08 |   N/A   |  N/A  |
+|        HARRIS         | 424.439 |   517.288   |    762.265    | 817.475 |   N/A   | N/A   |
+|         FAST          | **73.6087** | 98.7083 |    376.191    | 478.229 |   N/A   |  N/A  |
+|         BRISK         | 721.435 |   723.216    |   989.417    | 1065.08 |   N/A   | N/A |
+|          ORB          | 578.056 |   656.15   |     901.194    | 990.528 |   N/A   | N/A  |
+|         AKAZE         | 1772.78 |   1757.16   |    2034.87    | 2072.82 | 3348.77 | N/A   |
+|         SIFT          | 807.395 |   831.656    | Out of Memory | 1135.71 |   N/A   |  N/A   |
+
+#### Efficiency (matches/ms)
+
+| Detectors\Descriptors |  BRISK   |    BRIEF    |      ORB      |  FREAK   |  AKAZE   |   SIFT   |
+| :-------------------: | :------: | :---------: | :-----------: | :------: | :------: | :------: |
+|       SHITOMASI       | 0.508884 |   0.602941    |    0.359053    | 0.274147  |   N/A    | N/A  |
+|        HARRIS         | 0.289794  |  0.357635   |     0.203341    | 0.154133 |   N/A    |  N/A  |
+|         FAST          | **1.86119**  | 1.39806 |    0.313671    |  0.225833  |   N/A    | N/A  |
+|         BRISK         | 0.252275  |   0.333234   |    0.171818    | 0.104217 |   N/A    | N/A |
+|          ORB          | 0.453243  |   0.44044   |     0.260765    | 0.227152  |   N/A    | N/A  |
+|         AKAZE         | 0.108305 |    0.145121   |    0.0977952    | 0.0940746  | 0.0606193 | N/A |
+|         SIFT          | 0.161012 |    0.176756   | Out of Memory | 0.095095 |   N/A    | N/A |
+
+
+
+## TOP3 detector / descriptor combinations
+
+1. FAST + BRISK
+2. FAST + BRIEF
+3. SHITOMASI + BRIEF
 
 
 ## Reference
 
+* [KAZE/AKAZE descriptors will only work with KAZE/AKAZE keypoints](<https://github.com/kyamagu/mexopencv/issues/351>)
+* https://github.com/FrancoisMasson1990/SFND_2D_Feature_Tracking
 * https://github.com/gpokhark/SFND_2D_Feature_Matching
+
 
