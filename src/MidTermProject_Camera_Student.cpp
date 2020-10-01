@@ -19,13 +19,17 @@
 
 using namespace std;
 
-enum detector1{SHITOMASI, HARRIS};
-    
+enum detector1
+{
+    SHITOMASI,
+    HARRIS
+};
+
 std::map<string, detector1> Levels;
 
 void register1_levels()
 {
-    Levels["SHITOMASI"]   = SHITOMASI;
+    Levels["SHITOMASI"] = SHITOMASI;
     Levels["HARRIS"] = HARRIS;
 }
 
@@ -40,14 +44,14 @@ int main(int argc, const char *argv[])
 
     // camera
     string imgBasePath = dataPath + "images/";
-    string imgPrefix = "KITTI/2011_09_26/image_00/data/000000"; // left camera, color
+    string imgPrefix = "KITTI/2011_09_26/image_00/data_1/000000"; // left camera, color
     string imgFileType = ".png";
     int imgStartIndex = 0; // first file index to load (assumes Lidar and camera names have identical naming convention)
-    int imgEndIndex = 9;   // last file index to load
+    int imgEndIndex = 18;   // last file index to load
     int imgFillWidth = 4;  // no. of digits which make up the file index (e.g. img-0001.png)
 
     // misc
-    int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
+    int dataBufferSize = 2;        // no. of images which are held in memory (ring buffer) at the same time
     vector<DataFrame> data_buffer; // list of data frames which are held in memory at the same time
 
     // for visualizing results
@@ -60,9 +64,9 @@ int main(int argc, const char *argv[])
     int Totalkeypoints = 0;
     int Totalmatches = 0;
 
-    string detector_Type = "SHITOMASI"; // HARRIS, SHITOMASI, FAST, BRISK, ORB, AKAZE, SIFT
-    string descriptor_Type = "BRISK";   // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
-    
+    string detector_Type = "FAST"; // HARRIS, SHITOMASI, FAST, BRISK, ORB, AKAZE, SIFT
+    string descriptor_Type = "BRIEF";   // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+
     register1_levels();
     /* MAIN LOOP OVER ALL IMAGES */
 
@@ -106,22 +110,22 @@ int main(int argc, const char *argv[])
         //// TASK MP.2 -> add the following keypoint detectors in file matching2D.cpp and enable string-based selection based on detectorType
         if (Levels.find(detector_Type) != Levels.end())
         {
-        switch(Levels[detector_Type]) {
-            
-            case SHITOMASI: 
+            switch (Levels[detector_Type])
+            {
+
+            case SHITOMASI:
                 time_Detect = detKeypointsShiTomasi(keypoints, imgGray, false);
                 break;
-            case HARRIS: 
+            case HARRIS:
                 time_Detect = detKeypointsHarris(keypoints, imgGray, false);
                 break;
-        }
+            }
         }
         else
             time_Detect = detKeypointsModern(keypoints, imgGray, detector_Type, false);
 
-        
         if (time_Detect == 0)
-           return 1;
+            return 1;
 
         Totalkeypoints += keypoints.size();
 
@@ -152,14 +156,16 @@ int main(int argc, const char *argv[])
         // optional : limit number of keypoints (helpful for debugging and learning)
 
         if (bLimitKpts)
-        {
+        {   
             int maxKeypoints = 50;
 
-            // it automatically saves the best keypoints based on the quality
-            keypoints.erase(keypoints.begin() + maxKeypoints, keypoints.end());
-
+            if (detector_Type.compare("SHITOMASI") == 0)
+            { 
+                // there is no response info, so keep the first 50 as they are sorted in descending quality order
+                keypoints.erase(keypoints.begin() + maxKeypoints, keypoints.end());
+            }
             cv::KeyPointsFilter::retainBest(keypoints, maxKeypoints);
-            cout << " Keypoints have been limited!" << endl;
+            cout << " NOTE: Keypoints have been limited!" << endl;
         }
 
         // push keypoints and descriptor for current frame to end of data buffer
@@ -177,9 +183,9 @@ int main(int argc, const char *argv[])
 
         time_Des = descKeypoints((data_buffer.end() - 1)->keypoints, (data_buffer.end() - 1)->cameraImg, descriptors, descriptor_Type);
         //// EOF STUDENT ASSIGNMENT
-        
+
         if (time_Des == 0)
-           return 2;
+            return 2;
 
         // push descriptors for current frame to end of data buffer
         (data_buffer.end() - 1)->descriptors = descriptors;
@@ -192,9 +198,9 @@ int main(int argc, const char *argv[])
             /* MATCH KEYPOINT DESCRIPTORS */
 
             vector<cv::DMatch> matches;
-            string matcher_Type = "MAT_BF";                // MAT_BF, MAT_FLANN
+            string matcher_Type = "MAT_BF";               // MAT_BF, MAT_FLANN
             string descriptorTypeForMatch = "DES_BINARY"; // DES_BINARY, DES_HOG
-            string selector_Type = "SEL_KNN";              // SEL_NN, SEL_KNN
+            string selector_Type = "SEL_KNN";             // SEL_NN, SEL_KNN
 
             //// STUDENT ASSIGNMENT
             //// TASK MP.5 -> add FLANN matching in file matching2D.cpp
