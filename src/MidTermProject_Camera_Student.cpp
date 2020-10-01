@@ -44,7 +44,7 @@ int main(int argc, const char *argv[])
 
     // camera
     string imgBasePath = dataPath + "images/";
-    string imgPrefix = "KITTI/2011_09_26/image_00/data_1/000000"; // left camera, color
+    string imgPrefix = "KITTI/2011_09_26/image_00/data/000000"; // left camera, color
     string imgFileType = ".png";
     int imgStartIndex = 0; // first file index to load (assumes Lidar and camera names have identical naming convention)
     int imgEndIndex = 18;   // last file index to load
